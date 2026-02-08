@@ -1,0 +1,13 @@
+{
+  "domain": "ai_expose_entities",
+  "name": "AI Expose Entities",
+  "codeowners": [
+    "@pdrakeweb"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/pdrakeweb/ha-ai-expose-entities",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/pdrakeweb/ha-ai-expose-entities/issues",
+  "version": "0.1.0"
+}
