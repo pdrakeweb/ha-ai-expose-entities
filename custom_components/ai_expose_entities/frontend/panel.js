@@ -241,8 +241,12 @@ class AIExposeEntitiesPanel extends HTMLElement {
 
   _buildRecommendationLoadingDetails() {
     const details = [];
-    if (typeof this._stateMeta.catalog_size === "number") {
-      details.push(`${this._stateMeta.catalog_size} entities considered`);
+    const considered = this._stateMeta.catalog_size;
+    const total = this._stateMeta.catalog_total;
+    if (typeof considered === "number" && typeof total === "number" && total > considered) {
+      details.push(`${considered} of ${total} entities considered`);
+    } else if (typeof considered === "number") {
+      details.push(`${considered} entities considered`);
     }
     if (this._stateMeta.agent_id) {
       details.push(`Agent: ${this._stateMeta.agent_id}`);

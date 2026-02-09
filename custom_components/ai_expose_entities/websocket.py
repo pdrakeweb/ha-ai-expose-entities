@@ -217,10 +217,22 @@ def _build_state_meta(hass: HomeAssistant, entry: AIExposeEntitiesConfigEntry) -
     """Build metadata for frontend status display."""
     state = entry.runtime_data.state
     include_self = entry.runtime_data.test_entities is not None
+    # Determine sample size from config/options
+    sample_size = entry.options.get("entity_sample_size", 500)
+    try:
+        sample_size = int(sample_size)
+    except (ValueError, TypeError):
+        sample_size = 500
+    if sample_size < 1:
+        sample_size = 500
     catalog = build_entity_catalog(hass, state.denied, include_self=include_self)
     agent_id = entry.options.get(CONF_AGENT_ID)
+    # The number of entities actually considered (after sampling)
+    considered_count = min(len(catalog), sample_size)
+    total_count = len(catalog)
     return {
-        "catalog_size": len(catalog),
+        "catalog_size": considered_count,
+        "catalog_total": total_count,
         "agent_id": agent_id,
     }
 
