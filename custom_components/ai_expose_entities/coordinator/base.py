@@ -11,21 +11,28 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
+from datetime import timedelta
+from logging import Logger
 from typing import TYPE_CHECKING, Any
 
-from custom_components.ai_expose_entities.api import (
-    AIExposeEntitiesApiClientAuthenticationError,
-    AIExposeEntitiesApiClientError,
+from custom_components.ai_expose_entities.const import (
+    CONF_ENABLE_DEBUGGING,
+    DEFAULT_ENABLE_DEBUGGING,
+    DEFAULT_RECOMMENDATION_AGGRESSIVENESS,
+    LOGGER,
 )
-from custom_components.ai_expose_entities.const import LOGGER
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from custom_components.ai_expose_entities.utils import RecommendationEntry, build_entity_catalog
+from custom_components.ai_expose_entities.utils.assist_exposure import ASSISTANT_ID, set_assist_exposure
+from homeassistant.components.homeassistant import exposed_entities
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
     from custom_components.ai_expose_entities.data import AIExposeEntitiesConfigEntry
+    from homeassistant.core import HomeAssistant
 
 
-class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator):
+class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator[Any]):
     """
     Class to manage fetching data from the API.
 
@@ -46,6 +53,31 @@ class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator):
 
     config_entry: AIExposeEntitiesConfigEntry
 
+    def __init__(
+        self,
+        *,
+        hass: HomeAssistant,
+        logger: Logger,
+        name: str,
+        config_entry: AIExposeEntitiesConfigEntry,
+        update_interval: timedelta | None,
+        always_update: bool,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass=hass,
+            logger=logger,
+            name=name,
+            update_interval=update_interval,
+            always_update=always_update,
+        )
+        self.config_entry = config_entry
+        self._entity_data: dict[str, Any] = {}
+
+    def set_entity_data(self, data: dict[str, Any]) -> None:
+        """Set the data snapshot used by entities."""
+        self._entity_data = data
+
     async def _async_setup(self) -> None:
         """
         Set up the coordinator.
@@ -64,62 +96,137 @@ class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator):
         # self._device_id = device_info["id"]
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
-    async def _async_update_data(self) -> Any:
-        """
-        Fetch data from API endpoint.
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Return the cached entity data."""
+        return self._entity_data
 
-        This is the only method that should be implemented in a DataUpdateCoordinator.
-        It is called automatically based on the update_interval.
+    async def async_run_recommendation(
+        self,
+        *,
+        aggressiveness: str | None = None,
+    ) -> list[RecommendationEntry]:
+        """Run the AI recommendation flow and update state."""
+        state = self.config_entry.runtime_data.state
+        if state.approved:
+            no_longer_exposed = {
+                entity_id
+                for entity_id in state.approved
+                if not exposed_entities.async_should_expose(self.hass, ASSISTANT_ID, entity_id)
+            }
+            if no_longer_exposed:
+                if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+                    LOGGER.debug(
+                        "Removing approvals for entities no longer exposed: %s",
+                        sorted(no_longer_exposed),
+                    )
+                state.approved.difference_update(no_longer_exposed)
+        include_self = self.config_entry.runtime_data.test_entities is not None
+        catalog = build_entity_catalog(self.hass, state.denied, include_self=include_self)
+        aggressiveness_value = aggressiveness or DEFAULT_RECOMMENDATION_AGGRESSIVENESS
 
-        Context-based fetching:
-        The coordinator tracks which entities are currently listening via async_contexts().
-        This allows optimizing API calls to only fetch data that's actually needed.
-        For example, if only sensor entities are enabled, we can skip fetching switch data.
+        if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+            LOGGER.debug(
+                "Running recommendation: catalog_size=%d denied=%d aggressiveness=%s",
+                len(catalog),
+                len(state.denied),
+                aggressiveness_value,
+            )
 
-        The API client uses the credentials from config_entry to authenticate:
-        - username: from config_entry.data["username"]
-        - password: from config_entry.data["password"]
+        recommendations = await self.config_entry.runtime_data.client.async_recommend_entities(
+            catalog,
+            language=self.hass.config.language,
+            aggressiveness=aggressiveness_value,
+        )
 
-        Expected API response structure (example):
-        {
-            "userId": 1,      # Used as device identifier
-            "id": 1,          # Data record ID
-            "title": "...",   # Additional metadata
-            "body": "...",    # Additional content
-            # In production, would include:
-            # "air_quality": {"aqi": 45, "pm25": 12.3},
-            # "filter": {"life_remaining": 75, "runtime_hours": 324},
-            # "settings": {"fan_speed": "medium", "humidity": 55}
-        }
+        approved = state.approved
+        denied = state.denied
+        for entry in recommendations:
+            if entry.entity_id in approved or entry.entity_id in denied:
+                continue
+            if entry.disabled or entry.hidden:
+                continue
+            state.pending[entry.entity_id] = entry
 
-        Returns:
-            The data from the API as a dictionary.
+        state.last_run = dt_util.utcnow().isoformat()
+        self.config_entry.runtime_data.store.async_schedule_save(state)
+        self.async_set_updated_data(self._entity_data)
 
-        Raises:
-            ConfigEntryAuthFailed: If authentication fails, triggers reauthentication.
-            UpdateFailed: If data fetching fails for other reasons, optionally with retry_after.
-        """
-        try:
-            # Optional: Get active entity contexts to optimize data fetching
-            # listening_contexts = set(self.async_contexts())
-            # LOGGER.debug("Active entity contexts: %s", listening_contexts)
+        if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+            LOGGER.debug(
+                "Recommendation updated: recommended=%d pending=%d last_run=%s",
+                len(recommendations),
+                len(state.pending),
+                state.last_run,
+            )
+        return recommendations
 
-            # Fetch data from API
-            # In production, you could pass listening_contexts to optimize the API call:
-            # return await self.config_entry.runtime_data.client.async_get_data(listening_contexts)
-            return await self.config_entry.runtime_data.client.async_get_data()
-        except AIExposeEntitiesApiClientAuthenticationError as exception:
-            LOGGER.warning("Authentication error - %s", exception)
-            raise ConfigEntryAuthFailed(
-                translation_domain="ai_expose_entities",
-                translation_key="authentication_failed",
-            ) from exception
-        except AIExposeEntitiesApiClientError as exception:
-            LOGGER.exception("Error communicating with API")
-            # If the API provides rate limit information, you can honor it:
-            # if hasattr(exception, 'retry_after'):
-            #     raise UpdateFailed(retry_after=exception.retry_after) from exception
-            raise UpdateFailed(
-                translation_domain="ai_expose_entities",
-                translation_key="update_failed",
-            ) from exception
+    def async_apply_decisions(
+        self,
+        *,
+        approved: set[str],
+        denied: set[str],
+    ) -> None:
+        """Apply approval and denial decisions and update exposure."""
+        state = self.config_entry.runtime_data.state
+
+        if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+            LOGGER.debug(
+                "Applying decisions: approved=%s denied=%s",
+                sorted(approved),
+                sorted(denied),
+            )
+
+        for entity_id in approved:
+            if entity_id in state.pending:
+                state.pending.pop(entity_id, None)
+            state.approved.add(entity_id)
+            state.denied.discard(entity_id)
+
+        for entity_id in denied:
+            if entity_id in state.pending:
+                state.pending.pop(entity_id, None)
+            state.denied.add(entity_id)
+            state.approved.discard(entity_id)
+
+        if approved:
+            set_assist_exposure(self.hass, approved, should_expose=True)
+        if denied:
+            set_assist_exposure(self.hass, denied, should_expose=False)
+
+        self.config_entry.runtime_data.store.async_schedule_save(state)
+        self.async_set_updated_data(self._entity_data)
+
+        if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+            LOGGER.debug(
+                "Decisions applied: approved=%d denied=%d pending=%d",
+                len(approved),
+                len(denied),
+                len(state.pending),
+            )
+
+    def async_clear_pending(self, *, entity_ids: set[str] | None = None) -> None:
+        """Clear pending recommendations without changing exposure."""
+        state = self.config_entry.runtime_data.state
+        if not state.pending:
+            return
+
+        if entity_ids is None:
+            pending_count = len(state.pending)
+            state.pending.clear()
+        else:
+            if not entity_ids:
+                return
+            pending_count = 0
+            for entity_id in entity_ids:
+                if entity_id in state.pending:
+                    state.pending.pop(entity_id, None)
+                    pending_count += 1
+
+        if pending_count == 0:
+            return
+
+        self.config_entry.runtime_data.store.async_schedule_save(state)
+        self.async_set_updated_data(self._entity_data)
+
+        if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+            LOGGER.debug("Cleared pending recommendations: count=%d", pending_count)

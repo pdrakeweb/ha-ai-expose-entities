@@ -13,15 +13,33 @@ When adding many options, consider grouping them:
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import time
 from typing import Any
 
 import voluptuous as vol
 
-from custom_components.ai_expose_entities.const import DEFAULT_ENABLE_DEBUGGING, DEFAULT_UPDATE_INTERVAL_HOURS
+from custom_components.ai_expose_entities.const import (
+    CONF_AGENT_ID,
+    CONF_CUSTOM_PROMPT,
+    CONF_CUSTOM_PROMPT_ENABLED,
+    CONF_ENABLE_DEBUGGING,
+    CONF_SCHEDULE_ENABLED,
+    CONF_SCHEDULE_TIME,
+    DEFAULT_CUSTOM_PROMPT,
+    DEFAULT_CUSTOM_PROMPT_ENABLED,
+    DEFAULT_ENABLE_DEBUGGING,
+    DEFAULT_SCHEDULE_ENABLED,
+    DEFAULT_SCHEDULE_TIME,
+)
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 
 
-def get_options_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+def get_options_schema(
+    defaults: Mapping[str, Any] | None = None,
+    *,
+    agent_options: list[selector.SelectOptionDict] | None = None,
+) -> vol.Schema:
     """
     Get schema for options flow.
 
@@ -33,28 +51,48 @@ def get_options_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
 
     """
     defaults = defaults or {}
+    agent_options = agent_options or []
+    schedule_time = defaults.get(CONF_SCHEDULE_TIME, DEFAULT_SCHEDULE_TIME)
+    if isinstance(schedule_time, str):
+        schedule_time = dt_util.parse_time(schedule_time) or DEFAULT_SCHEDULE_TIME
+    if not isinstance(schedule_time, time):
+        schedule_time = DEFAULT_SCHEDULE_TIME
+
     return vol.Schema(
         {
             vol.Optional(
-                "update_interval_hours",
-                default=defaults.get("update_interval_hours", DEFAULT_UPDATE_INTERVAL_HOURS),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0.25,
-                    max=24,
-                    step=0.25,
-                    unit_of_measurement="h",
-                    mode=selector.NumberSelectorMode.BOX,
+                CONF_AGENT_ID,
+                default=defaults.get(CONF_AGENT_ID),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=agent_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 ),
             ),
             vol.Optional(
-                "enable_debugging",
-                default=defaults.get("enable_debugging", DEFAULT_ENABLE_DEBUGGING),
+                CONF_SCHEDULE_ENABLED,
+                default=defaults.get(CONF_SCHEDULE_ENABLED, DEFAULT_SCHEDULE_ENABLED),
             ): selector.BooleanSelector(),
             vol.Optional(
-                "custom_icon",
-                default=defaults.get("custom_icon"),
-            ): selector.IconSelector(),
+                CONF_SCHEDULE_TIME,
+                default=schedule_time,
+            ): selector.TimeSelector(),
+            vol.Optional(
+                CONF_CUSTOM_PROMPT_ENABLED,
+                default=defaults.get(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_CUSTOM_PROMPT,
+                default=defaults.get(CONF_CUSTOM_PROMPT, DEFAULT_CUSTOM_PROMPT),
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(
+                    multiline=True,
+                ),
+            ),
+            vol.Optional(
+                CONF_ENABLE_DEBUGGING,
+                default=defaults.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING),
+            ): selector.BooleanSelector(),
         },
     )
 

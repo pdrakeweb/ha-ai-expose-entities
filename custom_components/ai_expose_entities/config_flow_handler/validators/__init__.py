@@ -21,11 +21,9 @@ All validators are re-exported from this __init__.py for convenient imports.
 
 from __future__ import annotations
 
-from custom_components.ai_expose_entities.config_flow_handler.validators.credentials import validate_credentials
 from custom_components.ai_expose_entities.config_flow_handler.validators.sanitizers import sanitize_username
 
 # Re-export all validators for convenient imports
 __all__ = [
     "sanitize_username",
-    "validate_credentials",
 ]

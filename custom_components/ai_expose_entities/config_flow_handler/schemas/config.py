@@ -1,10 +1,7 @@
 """
 Config flow schemas.
 
-Schemas for the main configuration flow steps:
-- User setup
-- Reconfiguration
-- Reauthentication
+Schemas for the main configuration flow steps.
 
 When this file grows too large (>300 lines), consider splitting into:
 - user.py: User setup schemas
@@ -14,112 +11,61 @@ When this file grows too large (>300 lines), consider splitting into:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
-
 import voluptuous as vol
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.ai_expose_entities.const import (
+    CONF_AGENT_ID,
+    CONF_CUSTOM_PROMPT,
+    CONF_CUSTOM_PROMPT_ENABLED,
+    DEFAULT_CUSTOM_PROMPT,
+    DEFAULT_CUSTOM_PROMPT_ENABLED,
+)
+from homeassistant.components.conversation import HOME_ASSISTANT_AGENT
 from homeassistant.helpers import selector
 
 
-def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
-    """
-    Get schema for user step (initial setup).
-
-    Args:
-        defaults: Optional dictionary of default values to pre-populate the form.
-
-    Returns:
-        Voluptuous schema for user credentials input.
-
-    """
-    defaults = defaults or {}
+def get_user_schema(
+    *,
+    agent_options: list[selector.SelectOptionDict] | None = None,
+    default_agent_id: str | None = None,
+    default_custom_prompt_enabled: bool | None = None,
+    default_custom_prompt: str | None = None,
+) -> vol.Schema:
+    """Get schema for user step (initial setup)."""
+    agent_options = agent_options or []
+    if not default_agent_id:
+        default_agent_id = HOME_ASSISTANT_AGENT
+    if default_custom_prompt_enabled is None:
+        default_custom_prompt_enabled = DEFAULT_CUSTOM_PROMPT_ENABLED
+    if default_custom_prompt is None:
+        default_custom_prompt = DEFAULT_CUSTOM_PROMPT
     return vol.Schema(
         {
-            vol.Required(
-                CONF_USERNAME,
-                default=defaults.get(CONF_USERNAME, vol.UNDEFINED),
+            vol.Optional(
+                CONF_AGENT_ID,
+                default=default_agent_id,
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=agent_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            vol.Optional(
+                CONF_CUSTOM_PROMPT_ENABLED,
+                default=default_custom_prompt_enabled,
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_CUSTOM_PROMPT,
+                default=default_custom_prompt,
             ): selector.TextSelector(
                 selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.TEXT,
+                    multiline=True,
                 ),
             ),
-            vol.Required(CONF_PASSWORD): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
-                ),
-            ),
-        },
-    )
-
-
-def get_reconfigure_schema(username: str) -> vol.Schema:
-    """
-    Get schema for reconfigure step.
-
-    Args:
-        username: Current username to pre-fill in the form.
-
-    Returns:
-        Voluptuous schema for reconfiguration.
-
-    """
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_USERNAME,
-                default=username,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.TEXT,
-                ),
-            ),
-            vol.Required(
-                CONF_PASSWORD,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
-                ),
-            ),
-        },
-    )
-
-
-def get_reauth_schema(username: str) -> vol.Schema:
-    """
-    Get schema for reauthentication step.
-
-    Args:
-        username: Current username to pre-fill in the form.
-
-    Returns:
-        Voluptuous schema for reauthentication.
-
-    """
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_USERNAME,
-                default=username,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.TEXT,
-                ),
-            ),
-            vol.Required(
-                CONF_PASSWORD,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
-                ),
-            ),
-        },
+        }
     )
 
 
 __all__ = [
-    "get_reauth_schema",
-    "get_reconfigure_schema",
     "get_user_schema",
 ]

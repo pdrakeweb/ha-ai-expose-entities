@@ -1,14 +1,20 @@
 """API package for ai_expose_entities."""
 
 from .client import (
-    AIExposeEntitiesApiClient,
+    AIExposeEntitiesAIClient,
+    AIExposeEntitiesAIClientAuthenticationError,
+    AIExposeEntitiesAIClientCommunicationError,
+    AIExposeEntitiesAIClientError,
     AIExposeEntitiesApiClientAuthenticationError,
     AIExposeEntitiesApiClientCommunicationError,
     AIExposeEntitiesApiClientError,
 )
 
 __all__ = [
-    "AIExposeEntitiesApiClient",
+    "AIExposeEntitiesAIClient",
+    "AIExposeEntitiesAIClientAuthenticationError",
+    "AIExposeEntitiesAIClientCommunicationError",
+    "AIExposeEntitiesAIClientError",
     "AIExposeEntitiesApiClientAuthenticationError",
     "AIExposeEntitiesApiClientCommunicationError",
     "AIExposeEntitiesApiClientError",

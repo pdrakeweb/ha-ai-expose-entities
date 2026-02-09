@@ -2,51 +2,59 @@
   "config": {
     "step": {
       "user": {
-        "description": "If you need help with the configuration have a look here: https://github.com/pdrakeweb/ha-ai-expose-entities",
+        "title": "AI Expose Entities",
+        "description": "Create an entry to manage AI recommendations for Assist exposure.",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "agent_id": "Conversation agent",
+          "custom_prompt_enabled": "Use custom prompt",
+          "custom_prompt": "Custom prompt"
+        },
+        "data_description": {
+          "agent_id": "Conversation agent used to generate recommendations",
+          "custom_prompt_enabled": "Override the default prompt used to generate recommendations",
+          "custom_prompt": "Prefilled with the default prompt. Edit it when enabling custom prompts."
         }
       },
       "reconfigure": {
-        "description": "Update the credentials for this integration.",
+        "title": "Reconfigure AI Expose Entities",
+        "description": "Update which conversation agent is used for recommendations for {name}.",
         "data": {
-          "username": "Username",
-          "password": "Password"
-        }
-      },
-      "reauth_confirm": {
-        "title": "Reauthenticate Integration",
-        "description": "The credentials for {username} are no longer valid. Please provide updated credentials to restore access.",
-        "data": {
-          "username": "Username",
-          "password": "Password"
+          "agent_id": "Conversation agent",
+          "custom_prompt_enabled": "Use custom prompt",
+          "custom_prompt": "Custom prompt"
+        },
+        "data_description": {
+          "agent_id": "Conversation agent used to generate recommendations",
+          "custom_prompt_enabled": "Override the default prompt used to generate recommendations",
+          "custom_prompt": "Prefilled with the default prompt. Edit it when enabling custom prompts."
         }
       }
     },
-    "error": {
-      "auth": "Username/Password is wrong.",
-      "connection": "Unable to connect to the server.",
-      "unknown": "Unknown error occurred."
-    },
     "abort": {
-      "already_configured": "This entry is already configured."
+      "already_configured": "This entry is already configured.",
+      "reconfigure_successful": "Integration reconfigured successfully."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Configure Integration Options",
-        "description": "Customize how this integration operates.",
+        "description": "Select the AI agent and schedule recommendation runs.",
         "data": {
-          "update_interval_hours": "Update interval (hours)",
-          "enable_debugging": "Enable debug logging",
-          "custom_icon": "Custom icon (optional)"
+          "agent_id": "Conversation agent",
+          "schedule_enabled": "Enable daily recommendations",
+          "schedule_time": "Daily run time",
+          "custom_prompt_enabled": "Use custom prompt",
+          "custom_prompt": "Custom prompt",
+          "enable_debugging": "Enable debug logging"
         },
         "data_description": {
-          "update_interval_hours": "How often to refresh data from the API (0.25 to 24 hours)",
-          "enable_debugging": "Enable detailed debug logging for troubleshooting",
-          "custom_icon": "Override the default icon for entities (optional)"
+          "agent_id": "Conversation agent used to generate recommendations",
+          "schedule_enabled": "Run a daily recommendation automatically",
+          "schedule_time": "Local time to run the daily recommendation",
+          "custom_prompt_enabled": "Override the default prompt used to generate recommendations",
+          "custom_prompt": "Prefilled with the default prompt. Edit it when enabling custom prompts.",
+          "enable_debugging": "Enable detailed debug logging for troubleshooting"
         }
       }
     }

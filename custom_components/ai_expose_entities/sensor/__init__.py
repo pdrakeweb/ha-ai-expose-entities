@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorEntityDescription
 
 from .air_quality import ENTITY_DESCRIPTIONS as AIR_QUALITY_DESCRIPTIONS, AIExposeEntitiesAirQualitySensor
 from .diagnostic import ENTITY_DESCRIPTIONS as DIAGNOSTIC_DESCRIPTIONS, AIExposeEntitiesDiagnosticSensor
+from .test_entities import AIExposeEntitiesTestSensor
 
 if TYPE_CHECKING:
     from custom_components.ai_expose_entities.data import AIExposeEntitiesConfigEntry
@@ -44,3 +45,13 @@ async def async_setup_entry(
         )
         for entity_description in DIAGNOSTIC_DESCRIPTIONS
     )
+
+    test_entities = entry.runtime_data.test_entities
+    if test_entities:
+        async_add_entities(
+            AIExposeEntitiesTestSensor(
+                coordinator=entry.runtime_data.coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in test_entities.descriptions
+        )

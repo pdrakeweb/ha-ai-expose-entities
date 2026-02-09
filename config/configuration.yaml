@@ -9,6 +9,14 @@
 homeassistant:
   debug: true
 
+# AI Expose Entities test entity generation
+ai_expose_entities:
+  test_entities:
+    enabled: true
+    count: 120
+    relevant_count: 30
+    seed: 12345
+
 # Debugging integration
 # https://www.home-assistant.io/integrations/debugpy/
 debugpy:
@@ -66,9 +74,10 @@ history:
 logbook:
 
 # https://www.home-assistant.io/integrations/conversation/
-# conversation:
-# Note: Uncomment to enable voice assistant/conversation features
-# Dependencies (hassil, home-assistant-intents) are pre-installed in bootstrap
+conversation:
+
+# https://www.home-assistant.io/integrations/assist_pipeline/
+assist_pipeline:
 
 # https://www.home-assistant.io/integrations/webhook/
 webhook:
@@ -111,7 +120,7 @@ recorder:
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
-  default: info
+  default: debug
   logs:
     # Reduce noise from chatty components
     homeassistant.components.recorder: warning

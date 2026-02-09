@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from custom_components.ai_expose_entities.const import CONF_AGENT_ID
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.redact import async_redact_data
@@ -34,7 +35,6 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coordinator = entry.runtime_data.coordinator
-    client = entry.runtime_data.client
     integration = entry.runtime_data.integration
 
     # Get device and entity information
@@ -68,16 +68,19 @@ async def async_get_config_entry_diagnostics(
         )
 
     # Coordinator statistics
+    state = entry.runtime_data.state
     coordinator_info = {
         "last_update_success": coordinator.last_update_success,
         "update_interval": str(coordinator.update_interval),
-        "data_keys": list(coordinator.data.keys()) if isinstance(coordinator.data, dict) else None,
+        "pending_count": len(state.pending),
+        "approved_count": len(state.approved),
+        "denied_count": len(state.denied),
+        "last_run": state.last_run,
     }
 
-    # API client information (no sensitive data)
+    # AI client information (no sensitive data)
     api_info = {
-        "base_endpoint": "https://jsonplaceholder.typicode.com",
-        "has_credentials": bool(client._username),  # noqa: SLF001
+        "agent_id": entry.options.get(CONF_AGENT_ID),
     }
 
     # Integration information
@@ -109,23 +112,11 @@ async def async_get_config_entry_diagnostics(
         "last_exception_type": (type(coordinator.last_exception).__name__ if coordinator.last_exception else None),
     }
 
-    # Current data sample (sanitized)
-    data_sample = {}
-    if coordinator.data:
-        if isinstance(coordinator.data, dict):
-            # Include sample data but sanitize sensitive info
-            data_sample = {
-                "title": coordinator.data.get("title"),
-                "body_length": len(coordinator.data.get("body", "")) if coordinator.data.get("body") else 0,
-                "has_user_id": "userId" in coordinator.data,
-            }
-
     return {
         "entry": entry_info,
         "integration": integration_info,
         "coordinator": coordinator_info,
         "api": api_info,
         "devices": device_info,
-        "data_sample": data_sample,
         "error": error_info,
     }
