@@ -13,11 +13,14 @@ from __future__ import annotations
 
 from datetime import timedelta
 from logging import Logger
-from typing import TYPE_CHECKING, Any
+import random
+from typing import Any
 
 from custom_components.ai_expose_entities.const import (
     CONF_ENABLE_DEBUGGING,
+    CONF_ENTITY_SAMPLE_SIZE,
     DEFAULT_ENABLE_DEBUGGING,
+    DEFAULT_ENTITY_SAMPLE_SIZE,
     DEFAULT_RECOMMENDATION_AGGRESSIVENESS,
     LOGGER,
 )
@@ -27,39 +30,23 @@ from homeassistant.components.homeassistant import exposed_entities
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-if TYPE_CHECKING:
-    from custom_components.ai_expose_entities.data import AIExposeEntitiesConfigEntry
-    from homeassistant.core import HomeAssistant
 
-
-class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator[Any]):
+class AIExposeEntitiesCoordinator(DataUpdateCoordinator):
     """
-    Class to manage fetching data from the API.
+    Coordinator for AI Expose Entities integration.
 
-    This coordinator handles all data fetching for the integration and distributes
-    updates to all entities. It manages:
-    - Periodic data updates based on update_interval
-    - Error handling and recovery
-    - Authentication failure detection and reauthentication triggers
-    - Data distribution to all entities
-    - Context-based data fetching (only fetch data for active entities)
-
-    For more information:
-    https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-
-    Attributes:
-        config_entry: The config entry for this integration instance.
+    Manages data fetching, entity updates, and recommendation logic for the integration.
     """
 
-    config_entry: AIExposeEntitiesConfigEntry
+    config_entry: Any
 
     def __init__(
         self,
         *,
-        hass: HomeAssistant,
+        hass: Any,
         logger: Logger,
         name: str,
-        config_entry: AIExposeEntitiesConfigEntry,
+        config_entry: Any,
         update_interval: timedelta | None,
         always_update: bool,
     ) -> None:
@@ -106,6 +93,7 @@ class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator[Any]):
         aggressiveness: str | None = None,
     ) -> list[RecommendationEntry]:
         """Run the AI recommendation flow and update state."""
+
         state = self.config_entry.runtime_data.state
         if state.approved:
             no_longer_exposed = {
@@ -122,14 +110,42 @@ class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator[Any]):
                 state.approved.difference_update(no_longer_exposed)
         include_self = self.config_entry.runtime_data.test_entities is not None
         catalog = build_entity_catalog(self.hass, state.denied, include_self=include_self)
+
+        # Determine sample size from config/options
+        sample_size = self.config_entry.options.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE)
+        try:
+            sample_size = int(sample_size)
+        except (ValueError, TypeError):
+            sample_size = DEFAULT_ENTITY_SAMPLE_SIZE
+        if sample_size < 1:
+            sample_size = DEFAULT_ENTITY_SAMPLE_SIZE
+
+        # Always randomize the catalog order
+        if len(catalog) > 1:
+            random.shuffle(catalog)
+        # Select up to sample_size entities
+        if len(catalog) > sample_size:
+            catalog = catalog[:sample_size]
+
+        if not catalog:
+            # No entities to consider, clear pending and return empty
+            state.pending.clear()
+            state.last_run = dt_util.utcnow().isoformat()
+            self.config_entry.runtime_data.store.async_schedule_save(state)
+            self.async_set_updated_data(self._entity_data)
+            if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
+                LOGGER.debug("No entities to consider for recommendation. Skipping AI call.")
+            return []
+
         aggressiveness_value = aggressiveness or DEFAULT_RECOMMENDATION_AGGRESSIVENESS
 
         if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
             LOGGER.debug(
-                "Running recommendation: catalog_size=%d denied=%d aggressiveness=%s",
+                "Running recommendation: catalog_size=%d denied=%d aggressiveness=%s sample_size=%d",
                 len(catalog),
                 len(state.denied),
                 aggressiveness_value,
+                sample_size,
             )
 
         recommendations = await self.config_entry.runtime_data.client.async_recommend_entities(
@@ -230,3 +246,7 @@ class AIExposeEntitiesDataUpdateCoordinator(DataUpdateCoordinator[Any]):
 
         if self.config_entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
             LOGGER.debug("Cleared pending recommendations: count=%d", pending_count)
+
+
+# Alias for backward compatibility and public API
+AIExposeEntitiesDataUpdateCoordinator = AIExposeEntitiesCoordinator

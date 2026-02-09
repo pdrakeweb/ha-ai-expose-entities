@@ -1,3 +1,15 @@
+# Model Selection and Cost Considerations
+
+This integration enables AI-powered entity exposure in Home Assistant using various language models. **Model choice is critical:**
+
+- **Large installations:** Selecting large or expensive models (e.g., GPT-5, Gemini 2.5 Pro, etc) can result in significant API costs, especially if many entities are exposed or frequent calls are made.
+- **Recommended for most users:** Use smaller, faster, or free models for best performance and cost control. Examples:
+  - **Gemini 2.5 Flash Light** (fast, efficient)
+  - **Pony Alpha** (free)
+- **Tip:** Start with a free or low-cost model and scale up only if needed.
+
+The integration is optimized for smaller/faster models and works well in typical Home Assistant setups. For large or complex installations, review your model's pricing and usage limits before enabling broad entity exposure.
+
 # AI Expose Entities
 
 [![GitHub Release][releases-shield]][releases]

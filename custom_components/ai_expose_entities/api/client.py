@@ -1,4 +1,4 @@
-"""AI client for ai_expose_entities using Home Assistant conversation agents."""
+"""AI client for ai_expose_entities using Home Assistant AI Task integration."""
 
 from __future__ import annotations
 
@@ -14,8 +14,6 @@ from custom_components.ai_expose_entities.const import (
     RECOMMENDATION_AGGRESSIVENESS_LEVELS,
 )
 from custom_components.ai_expose_entities.utils import EntityCatalogItem, RecommendationEntry
-from homeassistant.components import conversation
-from homeassistant.components.conversation import ConversationInput
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -53,7 +51,7 @@ class AIExposeEntitiesApiClientAuthenticationError(
 
 
 class AIExposeEntitiesAIClient:
-    """AI client that uses Home Assistant conversation agents."""
+    """AI client that uses Home Assistant AI Task integration."""
 
     def __init__(
         self,
@@ -83,26 +81,20 @@ class AIExposeEntitiesAIClient:
         language: str,
         context: Context | None = None,
         aggressiveness: str | None = None,
+        ai_task_id: str | None = None,
     ) -> list[RecommendationEntry]:
-        """Ask the configured conversation agent to recommend entities."""
-        agent_id = self._agent_id or conversation.HOME_ASSISTANT_AGENT
+        """Ask the configured AI Task to recommend entities using the ai_task.run_task service."""
+        task_id = ai_task_id or self._agent_id
+        if not task_id:
+            raise AIExposeEntitiesAIClientAuthenticationError("No AI Task ID configured")
+
         if self._debug_enabled:
             LOGGER.debug(
-                "Preparing conversation agent '%s' for recommendations (catalog=%d language=%s)",
-                agent_id,
+                "Preparing AI Task '%s' for recommendations (catalog=%d language=%s)",
+                task_id,
                 len(catalog),
                 language,
             )
-        try:
-            await conversation.async_prepare_agent(  # type: ignore[attr-defined]
-                self._hass,
-                agent_id,
-                language,
-            )
-        except Exception as err:
-            raise AIExposeEntitiesAIClientAuthenticationError(
-                f"Conversation agent '{agent_id}' is not available"
-            ) from err
 
         prompt = _build_prompt(
             catalog,
@@ -110,50 +102,39 @@ class AIExposeEntitiesAIClient:
             custom_prompt_enabled=self._custom_prompt_enabled,
             aggressiveness=aggressiveness,
         )
-        user_input = ConversationInput(
-            text=prompt,
-            context=context or Context(),
-            conversation_id=None,
-            device_id=None,
-            satellite_id=None,
-            language=language,
-            agent_id=agent_id,
-            extra_system_prompt=_system_prompt(),
-        )
 
-        agent = conversation.async_get_agent(  # type: ignore[attr-defined]
-            self._hass,
-            agent_id,
-        )
-        if agent is None:
-            raise AIExposeEntitiesAIClientAuthenticationError(
-                f"Conversation agent '{agent_id}' is not available",
-            )
-
-        if self._debug_enabled:
-            LOGGER.debug(
-                "Sending recommendation request to agent '%s' (prompt_bytes=%d)",
-                agent_id,
-                len(prompt.encode("utf-8")),
-            )
-
+        # Call the ai_task.generate_data service and wait for the result event
+        service_data = {
+            "task_name": "classify entities",
+            "entity_id": task_id,
+            "instructions": prompt,
+        }
         try:
-            result = await agent.async_process(user_input)
+            result = await self._hass.services.async_call(
+                "ai_task",
+                "generate_data",
+                service_data,
+                blocking=True,
+                return_response=True,
+            )
         except Exception as err:
-            raise AIExposeEntitiesAIClientCommunicationError(f"Conversation agent error: {err}") from err
+            raise AIExposeEntitiesAIClientError(f"AI Task error: {err}") from err
 
-        response_text = _extract_response_text(result.response.speech)
+        if not result or "data" not in result:
+            raise AIExposeEntitiesAIClientError("AI Task service did not return data")
+
         if self._debug_enabled:
             LOGGER.debug(
-                "Received recommendation response (text_bytes=%d)",
-                len(response_text.encode("utf-8")),
+                "Received AI Task response (output_bytes=%d)",
+                len(str(result["data"]).encode("utf-8")),
             )
             LOGGER.debug(
-                "Recommendation response preview: %s",
-                _truncate_debug_text(response_text),
+                "AI Task response preview: %s",
+                _truncate_debug_text(str(result["data"])),
             )
+
         catalog_index = {item.entity_id: item for item in catalog}
-        payload = _extract_json_payload(response_text)
+        payload = result["data"] if isinstance(result["data"], dict) else _extract_json_payload(str(result["data"]))
         integration_overview = _extract_integration_overview(payload)
 
         results = _parse_grouped_recommendations(payload, catalog_index)
@@ -171,7 +152,8 @@ class AIExposeEntitiesAIClient:
                 entity_id = item.get("entity_id")
                 if not entity_id or entity_id not in catalog_index:
                     continue
-                reason = item.get("reason") if isinstance(item.get("reason"), str) else None
+                raw_reason = item.get("reason")
+                reason = str(raw_reason) if raw_reason is not None and not isinstance(raw_reason, str) else raw_reason
                 catalog_item = catalog_index[entity_id]
                 results.append(
                     RecommendationEntry(

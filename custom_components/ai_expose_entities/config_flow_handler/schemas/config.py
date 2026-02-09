@@ -17,10 +17,11 @@ from custom_components.ai_expose_entities.const import (
     CONF_AGENT_ID,
     CONF_CUSTOM_PROMPT,
     CONF_CUSTOM_PROMPT_ENABLED,
+    CONF_ENTITY_SAMPLE_SIZE,
     DEFAULT_CUSTOM_PROMPT,
     DEFAULT_CUSTOM_PROMPT_ENABLED,
+    DEFAULT_ENTITY_SAMPLE_SIZE,
 )
-from homeassistant.components.conversation import HOME_ASSISTANT_AGENT
 from homeassistant.helpers import selector
 
 
@@ -34,21 +35,35 @@ def get_user_schema(
     """Get schema for user step (initial setup)."""
     agent_options = agent_options or []
     if not default_agent_id:
-        default_agent_id = HOME_ASSISTANT_AGENT
+        default_agent_id = "default"  # fallback to string 'default' for AI Task
     if default_custom_prompt_enabled is None:
         default_custom_prompt_enabled = DEFAULT_CUSTOM_PROMPT_ENABLED
     if default_custom_prompt is None:
         default_custom_prompt = DEFAULT_CUSTOM_PROMPT
+
     return vol.Schema(
         {
             vol.Optional(
                 CONF_AGENT_ID,
                 default=default_agent_id,
             ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=agent_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                ),
+                {
+                    "options": agent_options,
+                    "mode": selector.SelectSelectorMode.DROPDOWN,
+                    "translation_key": "ai_task_id",
+                }
+            ),
+            vol.Optional(
+                CONF_ENTITY_SAMPLE_SIZE,
+                default=DEFAULT_ENTITY_SAMPLE_SIZE,
+            ): selector.NumberSelector(
+                {
+                    "min": 10,
+                    "max": 2000,
+                    "step": 1,
+                    "mode": selector.NumberSelectorMode.BOX,
+                    "translation_key": "entity_sample_size",
+                }
             ),
             vol.Optional(
                 CONF_CUSTOM_PROMPT_ENABLED,

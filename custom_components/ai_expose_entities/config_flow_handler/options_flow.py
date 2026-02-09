@@ -12,23 +12,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from custom_components.ai_expose_entities.config_flow_handler.agent_options import get_agent_options
+from custom_components.ai_expose_entities.config_flow_handler.ai_task_options import get_ai_task_options
 from custom_components.ai_expose_entities.config_flow_handler.schemas import get_options_schema
 from custom_components.ai_expose_entities.const import (
     CONF_AGENT_ID,
     CONF_CUSTOM_PROMPT,
     CONF_CUSTOM_PROMPT_ENABLED,
     CONF_ENABLE_DEBUGGING,
+    CONF_ENTITY_SAMPLE_SIZE,
     CONF_SCHEDULE_ENABLED,
     CONF_SCHEDULE_TIME,
     DEFAULT_CUSTOM_PROMPT,
     DEFAULT_CUSTOM_PROMPT_ENABLED,
     DEFAULT_ENABLE_DEBUGGING,
+    DEFAULT_ENTITY_SAMPLE_SIZE,
     DEFAULT_SCHEDULE_ENABLED,
     DEFAULT_SCHEDULE_TIME,
 )
 from homeassistant import config_entries
-from homeassistant.components.conversation import HOME_ASSISTANT_AGENT
 
 
 class AIExposeEntitiesOptionsFlow(config_entries.OptionsFlow):
@@ -62,6 +63,7 @@ class AIExposeEntitiesOptionsFlow(config_entries.OptionsFlow):
             The config flow result, either showing a form or creating an options entry.
 
         """
+
         if user_input is not None:
             options = dict(self.config_entry.options)
             agent_id = user_input.get(CONF_AGENT_ID)
@@ -69,6 +71,10 @@ class AIExposeEntitiesOptionsFlow(config_entries.OptionsFlow):
                 options[CONF_AGENT_ID] = agent_id
             else:
                 options.pop(CONF_AGENT_ID, None)
+
+            # Entity sample size
+            entity_sample_size = user_input.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE)
+            options[CONF_ENTITY_SAMPLE_SIZE] = int(entity_sample_size)
 
             options[CONF_SCHEDULE_ENABLED] = bool(user_input.get(CONF_SCHEDULE_ENABLED, DEFAULT_SCHEDULE_ENABLED))
             options[CONF_SCHEDULE_TIME] = user_input.get(CONF_SCHEDULE_TIME, DEFAULT_SCHEDULE_TIME)
@@ -86,13 +92,12 @@ class AIExposeEntitiesOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=options)
 
         defaults = dict(self.config_entry.options)
-        defaults.setdefault(CONF_AGENT_ID, HOME_ASSISTANT_AGENT)
-
+        ai_task_options = get_ai_task_options(self.hass)
         return self.async_show_form(
             step_id="init",
             data_schema=get_options_schema(
                 defaults,
-                agent_options=get_agent_options(self.hass),
+                agent_options=ai_task_options,
             ),
         )
 

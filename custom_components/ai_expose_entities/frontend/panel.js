@@ -57,11 +57,44 @@ class AIExposeEntitiesPanel extends HTMLElement {
         aggressiveness: this._aggressiveness,
       });
       this._applyState(result, true);
+      // Show an affirmative message if there is nothing to generate
+      if (result && result.message) {
+        if (
+          result.message === "No remaining entities to consider." ||
+          (Array.isArray(result.pending) && result.pending.length === 0)
+        ) {
+          this._showInfo(this._t("panel.info.no_entities_left"));
+        } else {
+          this._showInfo(result.message);
+        }
+      } else {
+        this._showInfo("");
+      }
     } catch (err) {
       this._showError(err);
     } finally {
       this._setRunningRecommendation(false);
       this._setLoading(false);
+    }
+  }
+    _t(key) {
+      // Simple translation lookup for en only (extend as needed)
+      const translations = {
+        "panel.info.no_entities_left": "All entities are already exposed. There are no new entities to recommend."
+      };
+      // Try Home Assistant translation if available
+      if (this._hass && typeof this._hass.localize === "function") {
+        const haResult = this._hass.localize(`component.ai_expose_entities.${key}`);
+        if (haResult && haResult !== `component.ai_expose_entities.${key}`) {
+          return haResult;
+        }
+      }
+      return translations[key] || key;
+    }
+  _showInfo(msg) {
+    const infoEl = this.querySelector(".ae-info");
+    if (infoEl) {
+      infoEl.textContent = msg || "";
     }
   }
 
@@ -635,6 +668,7 @@ class AIExposeEntitiesPanel extends HTMLElement {
           <div class="ae-selected-count">${selectedCount} selected</div>
           <div class="ae-loading"></div>
           <div class="ae-error"></div>
+          <div class="ae-info" style="color:#2563eb;font-size:13px;"></div>
         </div>
         <div class="ae-grid">
           ${grouped

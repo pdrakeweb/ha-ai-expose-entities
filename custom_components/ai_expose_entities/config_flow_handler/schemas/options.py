@@ -23,11 +23,13 @@ from custom_components.ai_expose_entities.const import (
     CONF_CUSTOM_PROMPT,
     CONF_CUSTOM_PROMPT_ENABLED,
     CONF_ENABLE_DEBUGGING,
+    CONF_ENTITY_SAMPLE_SIZE,
     CONF_SCHEDULE_ENABLED,
     CONF_SCHEDULE_TIME,
     DEFAULT_CUSTOM_PROMPT,
     DEFAULT_CUSTOM_PROMPT_ENABLED,
     DEFAULT_ENABLE_DEBUGGING,
+    DEFAULT_ENTITY_SAMPLE_SIZE,
     DEFAULT_SCHEDULE_ENABLED,
     DEFAULT_SCHEDULE_TIME,
 )
@@ -64,10 +66,23 @@ def get_options_schema(
                 CONF_AGENT_ID,
                 default=defaults.get(CONF_AGENT_ID),
             ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=agent_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                ),
+                {
+                    "options": agent_options,
+                    "mode": selector.SelectSelectorMode.DROPDOWN,
+                    "translation_key": "ai_task_id",
+                }
+            ),
+            vol.Optional(
+                CONF_ENTITY_SAMPLE_SIZE,
+                default=defaults.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE),
+            ): selector.NumberSelector(
+                {
+                    "min": 10,
+                    "max": 2000,
+                    "step": 1,
+                    "mode": selector.NumberSelectorMode.BOX,
+                    "translation_key": "entity_sample_size",
+                }
             ),
             vol.Optional(
                 CONF_SCHEDULE_ENABLED,

@@ -134,7 +134,7 @@ async def async_setup_entry(
     Set up this integration using UI.
 
     This is called when a config entry is loaded. It:
-    1. Initializes the AI client based on selected conversation agent
+    1. Initializes the AI client based on selected AI Task entity
     2. Loads recommendation state from storage
     3. Initializes the DataUpdateCoordinator for state updates
     4. Performs the first state refresh

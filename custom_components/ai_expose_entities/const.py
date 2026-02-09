@@ -12,8 +12,9 @@ ATTRIBUTION = "Data provided by Home Assistant"
 # Platform parallel updates - applied to all platforms
 PARALLEL_UPDATES = 1
 
+
 # Configuration keys
-CONF_AGENT_ID = "agent_id"
+CONF_AGENT_ID = "ai_task_id"
 CONF_CUSTOM_PROMPT = "custom_prompt"
 CONF_CUSTOM_PROMPT_ENABLED = "custom_prompt_enabled"
 CONF_ENABLE_DEBUGGING = "enable_debugging"
@@ -25,11 +26,14 @@ CONF_TEST_ENTITY_RELEVANT_COUNT = "relevant_count"
 CONF_TEST_ENTITY_SEED = "seed"
 CONF_SCHEDULE_ENABLED = "schedule_enabled"
 CONF_SCHEDULE_TIME = "schedule_time"
+# New: Entity sample size
+CONF_ENTITY_SAMPLE_SIZE = "entity_sample_size"
 
 # UI constants
 PANEL_URL_PATH = "ai-expose-entities"
 PANEL_TITLE = "AI Expose Entities"
 PANEL_ICON = "mdi:robot"
+
 
 # Default configuration values
 DEFAULT_ENABLE_DEBUGGING = False
@@ -56,6 +60,8 @@ DEFAULT_TEST_ENTITIES_ENABLED = False
 DEFAULT_TEST_ENTITY_COUNT = 0
 DEFAULT_TEST_ENTITY_RELEVANT_COUNT = 0
 DEFAULT_TEST_ENTITY_SEED = 12345
+# New: Default entity sample size
+DEFAULT_ENTITY_SAMPLE_SIZE = 500
 
 RECOMMENDATION_AGGRESSIVENESS_LEVELS = (
     "minimal",

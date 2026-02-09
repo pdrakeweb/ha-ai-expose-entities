@@ -9,4 +9,7 @@ from __future__ import annotations
 
 from .config_flow_handler import AIExposeEntitiesConfigFlowHandler
 
-__all__ = ["AIExposeEntitiesConfigFlowHandler"]
+# Home Assistant expects a class named ConfigFlow in this module
+ConfigFlow = AIExposeEntitiesConfigFlowHandler
+
+__all__ = ["AIExposeEntitiesConfigFlowHandler", "ConfigFlow"]

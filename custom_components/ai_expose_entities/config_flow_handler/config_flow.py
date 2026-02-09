@@ -11,18 +11,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from custom_components.ai_expose_entities.config_flow_handler.agent_options import get_agent_options
+from custom_components.ai_expose_entities.config_flow_handler.ai_task_options import get_ai_task_options
 from custom_components.ai_expose_entities.config_flow_handler.schemas import get_user_schema
 from custom_components.ai_expose_entities.const import (
     CONF_AGENT_ID,
     CONF_CUSTOM_PROMPT,
     CONF_CUSTOM_PROMPT_ENABLED,
+    CONF_ENTITY_SAMPLE_SIZE,
     DEFAULT_CUSTOM_PROMPT,
     DEFAULT_CUSTOM_PROMPT_ENABLED,
+    DEFAULT_ENTITY_SAMPLE_SIZE,
     DOMAIN,
 )
 from homeassistant import config_entries
-from homeassistant.components.conversation import HOME_ASSISTANT_AGENT
 
 if TYPE_CHECKING:
     from custom_components.ai_expose_entities.config_flow_handler.options_flow import AIExposeEntitiesOptionsFlow
@@ -77,14 +78,19 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
             The config flow result, either showing a form or creating an entry.
 
         """
+
         if user_input is not None:
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
 
             options: dict[str, Any] = {}
-            agent_id = user_input.get(CONF_AGENT_ID)
-            if agent_id:
-                options[CONF_AGENT_ID] = agent_id
+            ai_task_id = user_input.get(CONF_AGENT_ID)
+            if ai_task_id:
+                options[CONF_AGENT_ID] = ai_task_id
+
+            # Entity sample size
+            entity_sample_size = user_input.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE)
+            options[CONF_ENTITY_SAMPLE_SIZE] = int(entity_sample_size)
 
             custom_prompt_enabled = bool(user_input.get(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED))
             options[CONF_CUSTOM_PROMPT_ENABLED] = custom_prompt_enabled
@@ -98,10 +104,19 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
                 options=options,
             )
 
+        ai_task_options = get_ai_task_options(self.hass)
+        if not ai_task_options:
+            return self.async_show_form(
+                step_id="user",
+                errors={"base": "no_ai_tasks"},
+                description_placeholders={
+                    "message": "No AI Tasks are available. Please configure at least one AI Task in Home Assistant before setting up this integration."
+                },
+            )
         return self.async_show_form(
             step_id="user",
             data_schema=get_user_schema(
-                agent_options=get_agent_options(self.hass),
+                agent_options=ai_task_options,
             ),
         )
 
@@ -118,9 +133,9 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
 
         if user_input is not None:
             options = dict(entry.options)
-            agent_id = user_input.get(CONF_AGENT_ID)
-            if agent_id:
-                options[CONF_AGENT_ID] = agent_id
+            ai_task_id = user_input.get(CONF_AGENT_ID)
+            if ai_task_id:
+                options[CONF_AGENT_ID] = ai_task_id
             else:
                 options.pop(CONF_AGENT_ID, None)
 
@@ -136,14 +151,14 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
             return self.async_update_reload_and_abort(entry, reason="reconfigure_successful")
 
         defaults = dict(entry.options)
-        defaults.setdefault(CONF_AGENT_ID, HOME_ASSISTANT_AGENT)
+        defaults.setdefault(CONF_AGENT_ID, "default")
         defaults.setdefault(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED)
         defaults.setdefault(CONF_CUSTOM_PROMPT, DEFAULT_CUSTOM_PROMPT)
 
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=get_user_schema(
-                agent_options=get_agent_options(self.hass),
+                agent_options=get_ai_task_options(self.hass),
                 default_agent_id=defaults.get(CONF_AGENT_ID),
                 default_custom_prompt_enabled=defaults.get(CONF_CUSTOM_PROMPT_ENABLED),
                 default_custom_prompt=defaults.get(CONF_CUSTOM_PROMPT),

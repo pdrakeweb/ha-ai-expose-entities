@@ -6,11 +6,15 @@
         "description": "Create an entry to manage AI recommendations for Assist exposure.",
         "data": {
           "agent_id": "Conversation agent",
+          "ai_task_id": "AI Task",
+          "entity_sample_size": "Entities per Run",
           "custom_prompt_enabled": "Use custom prompt",
           "custom_prompt": "Custom prompt"
         },
         "data_description": {
           "agent_id": "Conversation agent used to generate recommendations",
+          "ai_task_id": "AI Task used for recommendations",
+          "entity_sample_size": "Number of entities processed per run",
           "custom_prompt_enabled": "Override the default prompt used to generate recommendations",
           "custom_prompt": "Prefilled with the default prompt. Edit it when enabling custom prompts."
         }
@@ -20,11 +24,15 @@
         "description": "Update which conversation agent is used for recommendations for {name}.",
         "data": {
           "agent_id": "Conversation agent",
+          "ai_task_id": "AI Task",
+          "entity_sample_size": "Entities per Run",
           "custom_prompt_enabled": "Use custom prompt",
           "custom_prompt": "Custom prompt"
         },
         "data_description": {
           "agent_id": "Conversation agent used to generate recommendations",
+          "ai_task_id": "AI Task used for recommendations",
+          "entity_sample_size": "Number of entities processed per run",
           "custom_prompt_enabled": "Override the default prompt used to generate recommendations",
           "custom_prompt": "Prefilled with the default prompt. Edit it when enabling custom prompts."
         }
@@ -156,6 +164,12 @@
           }
         }
       }
+    }
+  }
+  ,
+  "panel": {
+    "info": {
+      "no_entities_left": "All entities are already exposed. There are no new entities to recommend."
     }
   }
 }

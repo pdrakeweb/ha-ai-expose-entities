@@ -19,7 +19,7 @@ from custom_components.ai_expose_entities.const import (
 )
 from custom_components.ai_expose_entities.data import AIExposeEntitiesConfigEntry
 from custom_components.ai_expose_entities.utils import RecommendationState, build_entity_catalog
-from homeassistant.components import conversation, websocket_api
+from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api.connection import ActiveConnection
 from homeassistant.components.websocket_api.const import ERR_INVALID_FORMAT, ERR_NOT_FOUND, ERR_UNKNOWN_ERROR
 from homeassistant.components.websocket_api.decorators import require_admin, websocket_command
@@ -62,6 +62,11 @@ def ws_get_state(
         connection.send_error(msg["id"], ERR_NOT_FOUND, "No config entry")
         return
 
+    if not hasattr(entry, "runtime_data") or entry.runtime_data is None:
+        connection.send_error(
+            msg["id"], ERR_UNKNOWN_ERROR, "Integration is still initializing. Please wait and try again."
+        )
+        return
     state = entry.runtime_data.state
     if entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
         LOGGER.debug(
@@ -99,7 +104,7 @@ def ws_run_recommendation(
         try:
             if entry.options.get(CONF_ENABLE_DEBUGGING, DEFAULT_ENABLE_DEBUGGING):
                 LOGGER.debug("WebSocket run_recommendation requested")
-            await entry.runtime_data.coordinator.async_run_recommendation(
+            recommendations = await entry.runtime_data.coordinator.async_run_recommendation(
                 aggressiveness=msg[CONF_RECOMMENDATION_AGGRESSIVENESS],
             )
         except (AIExposeEntitiesAIClientError, HomeAssistantError) as err:
@@ -114,7 +119,10 @@ def ws_run_recommendation(
             )
 
         response = _serialize_state(entry.runtime_data.state, _build_state_meta(hass, entry))
-        response["message"] = "Recommendations generated successfully."
+        if not recommendations:
+            response["message"] = "No remaining entities to consider."
+        else:
+            response["message"] = "Recommendations generated successfully."
         connection.send_result(
             msg["id"],
             response,
@@ -210,7 +218,7 @@ def _build_state_meta(hass: HomeAssistant, entry: AIExposeEntitiesConfigEntry) -
     state = entry.runtime_data.state
     include_self = entry.runtime_data.test_entities is not None
     catalog = build_entity_catalog(hass, state.denied, include_self=include_self)
-    agent_id = entry.options.get(CONF_AGENT_ID) or conversation.HOME_ASSISTANT_AGENT
+    agent_id = entry.options.get(CONF_AGENT_ID)
     return {
         "catalog_size": len(catalog),
         "agent_id": agent_id,
