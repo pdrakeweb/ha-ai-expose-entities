@@ -1,3 +1,7 @@
+# UI
+
+![Screenshot of the UI](docs/screenshot.png)
+
 # Model Selection and Cost Considerations
 
 This integration enables AI-powered entity exposure in Home Assistant using various language models. **Model choice is critical:**
