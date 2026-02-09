@@ -202,8 +202,8 @@ def _system_prompt() -> str:
     """Return the system prompt instructions for the agent."""
     return (
         "You are helping Home Assistant decide which entities should be exposed to voice assistants. "
-        "Prefer actionable, user-facing entities. Avoid diagnostic or internal entities, and do not "
-        "recommend entities that are disabled or hidden. Group related entities and explain why each "
+        "Prefer actionable, user-facing entities.  Err on the side of including too many entities not too few. Include a limited amount of diagnostic entities and avoid duplicates but do include some. Include relatively few internal entities, and do not "
+        "recommend entities that are disabled. Only include hidden entities in bold or aggressive runs.  Group related entities and explain why each "
         "group should be exposed in 1-2 sentences. "
         "Respond ONLY with valid JSON. Do not include Markdown, code fences, or extra commentary."
     )

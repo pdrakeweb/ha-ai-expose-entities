@@ -113,9 +113,11 @@ def ws_run_recommendation(
                 len(entry.runtime_data.state.pending),
             )
 
+        response = _serialize_state(entry.runtime_data.state, _build_state_meta(hass, entry))
+        response["message"] = "Recommendations generated successfully."
         connection.send_result(
             msg["id"],
-            _serialize_state(entry.runtime_data.state, _build_state_meta(hass, entry)),
+            response,
         )
 
     hass.async_create_task(_run())
