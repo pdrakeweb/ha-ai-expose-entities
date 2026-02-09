@@ -299,6 +299,81 @@ class AIExposeEntitiesPanel extends HTMLElement {
 
     this.innerHTML = `
       <style>
+                @media (prefers-color-scheme: dark) {
+                  :host {
+                    color: #e5e7eb;
+                    background: radial-gradient(circle at 10% 10%, #23272f, #1e293b 45%, #23272f 100%);
+                  }
+                  .ae-shell {
+                    background: #23272f;
+                    box-shadow: 0 20px 50px rgba(24, 24, 27, 0.18);
+                  }
+                  .ae-title {
+                    color: #f3f4f6;
+                  }
+                  .ae-section-title {
+                    color: #e5e7eb;
+                  }
+                  .ae-subtitle {
+                    color: #a1a1aa;
+                  }
+                  .ae-card {
+                    background: #1e293b;
+                    border: 1px solid #374151;
+                  }
+                  .ae-group-reason {
+                    color: #a1a1aa;
+                  }
+                  .ae-group-toggle {
+                    background: #23272f;
+                    color: #60a5fa;
+                    border: 1px solid #374151;
+                  }
+                  .ae-expand-toggle {
+                    background: #23272f;
+                    color: #60a5fa;
+                    border: 1px solid #374151;
+                  }
+                  .ae-group-count {
+                    color: #60a5fa;
+                  }
+                  .ae-entity-meta {
+                    color: #a1a1aa;
+                  }
+                  .ae-tag {
+                    background: #374151;
+                    color: #60a5fa;
+                  }
+                  .ae-tag.warn {
+                    background: #7f1d1d;
+                    color: #fca5a5;
+                  }
+                  .ae-button {
+                    background: #2563eb;
+                    color: #f3f4f6;
+                  }
+                  .ae-button.secondary {
+                    background: #374151;
+                    color: #60a5fa;
+                    border: 1px solid #60a5fa;
+                  }
+                  .ae-button.danger {
+                    background: #7f1d1d;
+                    color: #fca5a5;
+                    border: 1px solid #fca5a5;
+                  }
+                  .ae-button.ghost {
+                    background: #23272f;
+                    color: #e5e7eb;
+                    border: 1px dashed #374151;
+                  }
+                  .ae-error {
+                    color: #fca5a5;
+                  }
+                  .ae-loading {
+                    color: #60a5fa;
+                  }
+                }
         :host {
           display: block;
           padding: 24px;
@@ -326,6 +401,7 @@ class AIExposeEntitiesPanel extends HTMLElement {
         .ae-title {
           font-size: 24px;
           letter-spacing: -0.02em;
+          color: #23272f;
         }
         .ae-subtitle {
           font-size: 14px;
@@ -412,10 +488,11 @@ class AIExposeEntitiesPanel extends HTMLElement {
           font-weight: 600;
           margin-bottom: 12px;
           text-transform: capitalize;
+          color: #1f2937;
         }
         .ae-group-reason {
           font-size: 12px;
-          color: #4b5563;
+          color: #374151;
         }
         .ae-group-toggle {
           display: inline-flex;
