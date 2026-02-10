@@ -10,4 +10,6 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/pdrakeweb/ha-ai-expose-entities/issues",
   "version": "0.2.0"
+,
+  "dependencies": ["http"]
 }

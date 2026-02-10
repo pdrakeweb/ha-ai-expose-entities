@@ -166,10 +166,4 @@
       }
     }
   }
-  ,
-  "panel": {
-    "info": {
-      "no_entities_left": "All entities are already exposed. There are no new entities to recommend."
-    }
-  }
 }
