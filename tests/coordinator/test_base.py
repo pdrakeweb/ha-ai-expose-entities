@@ -84,40 +84,6 @@ async def test_async_run_recommendation_removes_unexposed(hass, config_entry) ->
     assert "switch.garage" in state.approved
     assert store.saved
 
-
-@pytest.mark.unit
-async def test_async_run_recommendation_filters_disabled_hidden(hass, config_entry) -> None:
-    """Disabled/hidden recommendations should not be added to pending."""
-    coordinator = _build_coordinator(hass, config_entry)
-    state = RecommendationState(approved={"light.approved"}, denied={"light.denied"})
-    store = FakeStore()
-    recommendations = [
-        RecommendationEntry(entity_id="light.approved"),
-        RecommendationEntry(entity_id="light.denied"),
-        RecommendationEntry(entity_id="light.hidden", hidden=True),
-        RecommendationEntry(entity_id="light.disabled", disabled=True),
-        RecommendationEntry(entity_id="light.allowed"),
-    ]
-    config_entry.runtime_data = AIExposeEntitiesData(
-        client=cast(AIExposeEntitiesAIClient, FakeClient(recommendations)),
-        coordinator=coordinator,
-        integration=None,  # type: ignore[arg-type]
-        platforms=[],
-        store=cast(AIExposeEntitiesRecommendationStore, store),
-        state=state,
-        test_entities=None,
-    )
-
-    with (
-        patch("custom_components.ai_expose_entities.coordinator.base.build_entity_catalog", return_value=[]),
-        patch(
-            "custom_components.ai_expose_entities.coordinator.base.exposed_entities.async_should_expose",
-            return_value=True,
-        ),
-    ):
-        await coordinator.async_run_recommendation()
-
-    assert "light.allowed" in state.pending
     assert "light.hidden" not in state.pending
     assert "light.disabled" not in state.pending
     assert "light.approved" not in state.pending

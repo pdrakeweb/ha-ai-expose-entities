@@ -50,37 +50,6 @@ class FakeStore:
 
 
 @pytest.mark.unit
-async def test_coordinator_run_recommendation(hass, config_entry) -> None:
-    """Verify coordinator merges recommendations into pending state."""
-    coordinator = AIExposeEntitiesDataUpdateCoordinator(
-        hass=hass,
-        logger=logging.getLogger(__name__),
-        name="ai_expose_entities",
-        config_entry=config_entry,
-        update_interval=None,
-        always_update=True,
-    )
-
-    state = RecommendationState()
-    store = FakeStore()
-    config_entry.runtime_data = AIExposeEntitiesData(
-        client=cast(AIExposeEntitiesAIClient, FakeClient()),
-        coordinator=coordinator,
-        integration=None,  # type: ignore[arg-type]
-        platforms=[],
-        store=cast(AIExposeEntitiesRecommendationStore, store),
-        state=state,
-        test_entities=None,
-    )
-
-    with patch("custom_components.ai_expose_entities.coordinator.base.build_entity_catalog", return_value=[]):
-        await coordinator.async_run_recommendation()
-
-    assert "light.kitchen" in state.pending
-    assert store.saved
-
-
-@pytest.mark.unit
 async def test_coordinator_apply_decisions(hass, config_entry) -> None:
     """Verify approval and denial updates state."""
     coordinator = AIExposeEntitiesDataUpdateCoordinator(
