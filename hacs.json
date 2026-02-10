@@ -1,6 +1,5 @@
 {
   "name": "AI Expose Entities",
   "homeassistant": "2025.12.3",
-  "hacs": "2.0.5",
-  "topics": ["ai", "integration", "entities", "voice assistants"]
+  "hacs": "2.0.5"
 }
