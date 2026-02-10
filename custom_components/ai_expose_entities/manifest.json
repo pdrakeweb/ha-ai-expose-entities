@@ -5,11 +5,10 @@
     "@pdrakeweb"
   ],
   "config_flow": true,
+  "dependencies": ["http"],
   "documentation": "https://github.com/pdrakeweb/ha-ai-expose-entities",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/pdrakeweb/ha-ai-expose-entities/issues",
   "version": "0.2.0"
-,
-  "dependencies": ["http"]
 }
