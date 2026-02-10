@@ -83,6 +83,7 @@ async def test_ai_client_parses_grouped_response(hass) -> None:
     with (
         patch("homeassistant.components.conversation.async_prepare_agent"),
         patch("homeassistant.components.conversation.async_get_agent", return_value=agent),
+        patch("homeassistant.core.ServiceRegistry.async_call", return_value={"data": payload}),
     ):
         results = await client.async_recommend_entities(_catalog(), language="en")
 
@@ -105,6 +106,7 @@ async def test_ai_client_parses_fenced_json(hass) -> None:
     with (
         patch("homeassistant.components.conversation.async_prepare_agent"),
         patch("homeassistant.components.conversation.async_get_agent", return_value=agent),
+        patch("homeassistant.core.ServiceRegistry.async_call", return_value={"data": payload}),
     ):
         results = await client.async_recommend_entities(_catalog(), language="en")
 
@@ -122,6 +124,7 @@ async def test_ai_client_extracts_json_with_prefix(hass) -> None:
     with (
         patch("homeassistant.components.conversation.async_prepare_agent"),
         patch("homeassistant.components.conversation.async_get_agent", return_value=agent),
+        patch("homeassistant.core.ServiceRegistry.async_call", return_value={"data": payload}),
     ):
         results = await client.async_recommend_entities(_catalog(), language="en")
 
@@ -139,6 +142,7 @@ async def test_ai_client_rejects_invalid_recommended_type(hass) -> None:
     with (
         patch("homeassistant.components.conversation.async_prepare_agent"),
         patch("homeassistant.components.conversation.async_get_agent", return_value=agent),
+        patch("homeassistant.core.ServiceRegistry.async_call", return_value={"data": payload}),
         pytest.raises(AIExposeEntitiesAIClientError),
     ):
         await client.async_recommend_entities(_catalog(), language="en")
@@ -159,6 +163,7 @@ async def test_ai_client_builds_custom_prompt(hass) -> None:
     with (
         patch("homeassistant.components.conversation.async_prepare_agent"),
         patch("homeassistant.components.conversation.async_get_agent", return_value=agent),
+        patch("homeassistant.core.ServiceRegistry.async_call", return_value={"data": payload}),
     ):
         await client.async_recommend_entities(_catalog(), language="en", aggressiveness="unknown")
 

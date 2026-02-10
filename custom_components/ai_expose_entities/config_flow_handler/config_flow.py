@@ -139,6 +139,10 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
             else:
                 options.pop(CONF_AGENT_ID, None)
 
+            # Entity sample size
+            entity_sample_size = user_input.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE)
+            options[CONF_ENTITY_SAMPLE_SIZE] = int(entity_sample_size)
+
             custom_prompt_enabled = bool(user_input.get(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED))
             options[CONF_CUSTOM_PROMPT_ENABLED] = custom_prompt_enabled
             custom_prompt = user_input.get(CONF_CUSTOM_PROMPT, DEFAULT_CUSTOM_PROMPT)
@@ -151,17 +155,20 @@ class AIExposeEntitiesConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN
             return self.async_update_reload_and_abort(entry, reason="reconfigure_successful")
 
         defaults = dict(entry.options)
-        defaults.setdefault(CONF_AGENT_ID, "default")
-        defaults.setdefault(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED)
-        defaults.setdefault(CONF_CUSTOM_PROMPT, DEFAULT_CUSTOM_PROMPT)
+        # Always use the saved value if present, else fallback to default
+        default_agent_id = defaults.get(CONF_AGENT_ID, "default")
+        default_entity_sample_size = defaults.get(CONF_ENTITY_SAMPLE_SIZE, DEFAULT_ENTITY_SAMPLE_SIZE)
+        default_custom_prompt_enabled = defaults.get(CONF_CUSTOM_PROMPT_ENABLED, DEFAULT_CUSTOM_PROMPT_ENABLED)
+        default_custom_prompt = defaults.get(CONF_CUSTOM_PROMPT, DEFAULT_CUSTOM_PROMPT)
 
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=get_user_schema(
                 agent_options=get_ai_task_options(self.hass),
-                default_agent_id=defaults.get(CONF_AGENT_ID),
-                default_custom_prompt_enabled=defaults.get(CONF_CUSTOM_PROMPT_ENABLED),
-                default_custom_prompt=defaults.get(CONF_CUSTOM_PROMPT),
+                default_agent_id=default_agent_id,
+                default_custom_prompt_enabled=default_custom_prompt_enabled,
+                default_custom_prompt=default_custom_prompt,
+                default_entity_sample_size=default_entity_sample_size,
             ),
             description_placeholders={"name": entry.title},
         )

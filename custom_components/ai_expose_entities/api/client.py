@@ -120,8 +120,10 @@ class AIExposeEntitiesAIClient:
         except Exception as err:
             raise AIExposeEntitiesAIClientError(f"AI Task error: {err}") from err
 
-        if not result or "data" not in result:
-            raise AIExposeEntitiesAIClientError("AI Task service did not return data")
+        # Handle empty or None result gracefully
+        if not result or "data" not in result or result["data"] is None:
+            LOGGER.warning("AI Task returned no data (empty or None result). Returning empty recommendations.")
+            return []
 
         if self._debug_enabled:
             LOGGER.debug(

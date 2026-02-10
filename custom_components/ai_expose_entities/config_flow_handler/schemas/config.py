@@ -31,6 +31,7 @@ def get_user_schema(
     default_agent_id: str | None = None,
     default_custom_prompt_enabled: bool | None = None,
     default_custom_prompt: str | None = None,
+    default_entity_sample_size: int | None = None,
 ) -> vol.Schema:
     """Get schema for user step (initial setup)."""
     agent_options = agent_options or []
@@ -40,6 +41,8 @@ def get_user_schema(
         default_custom_prompt_enabled = DEFAULT_CUSTOM_PROMPT_ENABLED
     if default_custom_prompt is None:
         default_custom_prompt = DEFAULT_CUSTOM_PROMPT
+    if default_entity_sample_size is None:
+        default_entity_sample_size = DEFAULT_ENTITY_SAMPLE_SIZE
 
     return vol.Schema(
         {
@@ -55,7 +58,7 @@ def get_user_schema(
             ),
             vol.Optional(
                 CONF_ENTITY_SAMPLE_SIZE,
-                default=DEFAULT_ENTITY_SAMPLE_SIZE,
+                default=default_entity_sample_size,
             ): selector.NumberSelector(
                 {
                     "min": 10,

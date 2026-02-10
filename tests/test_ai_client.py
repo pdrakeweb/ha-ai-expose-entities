@@ -59,6 +59,10 @@ async def test_ai_client_recommendations(hass) -> None:
             "homeassistant.components.conversation.async_get_agent",
             return_value=FakeAgent(),
         ),
+        patch(
+            "homeassistant.core.ServiceRegistry.async_call",
+            return_value={"data": {"recommended": [{"entity_id": "light.kitchen", "reason": "Frequently used"}]}},
+        ),
     ):
         result = await client.async_recommend_entities(catalog, language="en")
 
